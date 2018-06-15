@@ -1,0 +1,151 @@
+---
+title: "Atrium University: Linear Regression"
+author: "Paul Harmon"
+date: "June 15, 2018"
+output: 
+  html_document:
+  theme: lumen
+  highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+```
+
+## Introduction: Linear Regression
+
+Far and away, the tools most used in Machine Learning are regression-based. **Linear Regression** and **Logistic Regression** are the easiest to understand and most commonly utilized regression tools; however, there are others available as well. 
+
+This document covers the basics of linear regression, including:
+
++ What is linear regression?
++ How does it differ from logistic regression?
++ Common Regression Problems: Model Selection
++ Common Regression Problems: Inference
++ Common Regression Problems: Prediction
++ How do I implement this tool in R?
++ How do I use Einsteing Discovery's regression tools?
+
+Before we jump in, note that linear regression is a powerful statistical tool. Entire books have been written solely on this subject - this is just a high-level overview of how you can get started. For a more technical overview of the subject matter, I would suggest the following books:
+
++ Predictive Analytics (Kuhn) [** insert link here **]: *Description*: A technical overview of how to implement ML methods in R. 
++ Naked Statistics ()[** insert link here **]: *Description*: A high-level overview of regression tools from a social science persepective. Good context. 
+
+etc. 
+
+
+
+##What is linear regression:
+
+
+## How do linear regression and logistic regression differ?
+
+## Model Selection
+One common problem associated with any regression problem is to decide which variables should be used. In general, it is a good idea to collect as much data as possible, but if the variables that you collect are not good predictors of the outcome you are trying to explain or predict, they should not be included in the model. 
+
+**Why would I remove information from a model?** A good question, indeed. There are several reasons that you might want to remove a variable. 
+*Multicollinearity*: If two variables are highly related to each other, the model cannot identify the effect of either variable very well. Consider the following example: If I gave you a packet of sea salt and a packet of table salt and poured them onto a plate together, you would be unable to distinguish which one was which. A regression model behaves in a similar way. 
+
+*Bad variables*: In general, adding variables to a model will improve predictive performance. However, if the added variable is unrelated ot the response of interest, or only a little bit, it may not be worth adding it in. **Key idea: SIMPLE MODELS ARE GENERALLY PREFERABLE TO COMPLICATED ONES**. 
+
+Often, bad variables can be identified by fitting models with different variables included and comparing Akaike's An Information Criterion (AIC) values. Smaller AIC values mean that the model is a better fit to the data.  
+
+
+## Inference
+
+A key goal of linear regression is that the tools used here are often used to describe an actual process. For us, a process is usually related to customer purchasing behavior, sales outcomes, or other business-related processes. Generally, our customers want to know more about the role each variable they colllect information on plays in that process. 
+
+*For example*: A customer might want to know about how the price of a product they sell impacts the quantity of their sales. Multiple Regression (i.e. linear regression with more than 1 variable) allows for us to estimate the effect of price, controlling for the effect of other variables in the model! 
+
+
+## Prediction
+
+The other primary use case for linear regression is for prediction or forecasting. A good model should be able to produce a reasonable prediction output for a new input of data. 
+
+
+
+
+
+##Trying it in R:
+
+Consider the following scenario. You are trying to determine whether or not having a garage impacts the sales price of a home. You collect data on home sales in your city (which, in this case, happens to be Grand Junction, Colorado). Then, you plan to analyze it in R via the following steps:
+
+```{r}
+#reads in the data from a .csv file (generally easiest way to get into R)
+mcdat <- read.csv('mcdat.csv',header = TRUE)
+
+head(mcdat,10) #returns the first 10 rows of data
+dim(mcdat) #tells us we have 163 observations on 38 variables
+
+mcdat$Garage <- ifelse(mcdat$Garage.sqft %in% c('y','Y'),1,0)
+
+```
+
+Every dataset contains variables that are not necessarily good predictors. In this case, we filter out all the variables that are included in the dataset but are not necessary for analysis. (Note: This can sometimes be hard to figure out. Talk to your domain experts (i.e. customers) when determining which variables are unrelated to the process (i.e. comment-variables, etc.))
+
+We can also treat sales date in a more intuitive way using a package called lubridate (Grolemund and Wickham, 2011). 
+
+```{r}
+#some variables don't make sense to use as predictors, they're just added information we don't need
+
+mcdat_r <- mcdat[,c('Date','ACRES','Total_HeatedSqFtV','Min_EFFECTIVEYEARBUILT','BEDROOM',"Full.Bath",'Garage','Price')]
+
+library(lubridate) #allows you to better formulate dates 
+mcdat_r$Month <- month(mdy(mcdat_r$Date)) #this gives us just the sales month
+```
+
+We are now ready to try fitting a model. Let's start with a simple linear regression that looks at whether or not the presence of a garage has an effect on house price. 
+
+```{r}
+#linear model (simple linear regression)
+slr1 <- lm(Price ~ Garage, data = mcdat_r)
+summary(slr1)
+
+#assess diagnostics
+par(mfrow = c(2,2))
+plot(slr1, pch = 20)
+```
+
+Based on the results above, we can see that the a house with a garage is estimated by the model to sell for $83,498 more than a house that does not have a garage, on average. The p-value associated with the Garage variable is very small, indicating strong statistical evidence that there is indeed a true difference in sales price between houses that have a garage and houses that do not.  
+
+Note that this does not take into account any other information about the house. You probably think that houses without garages may have other characteristics that might differ from houses with garages. Moreover, you want to leverage as much information as you can so that you can isolate the effect of garages. 
+
+That moves us into the world of multiple linear regression. Here, we can examine many predictor variables at a time. The way you implement MLR in R is the same as you would in a single variable regression, but you can use the + sign to add variables to the model formula. 
+
+
+```{r}
+#multilple linear regression
+mlr1 <- lm(Price ~ ACRES + Total_HeatedSqFtV + BEDROOM + 
+             Full.Bath + Garage + Month, data = mcdat_r[,-1])
+
+#model summary
+summary(mlr1)
+
+#diagnostics
+par(mfrow = c(2,2))
+plot(mlr1, pch = 20)
+
+#visualize the model: Effects Plots plot the estimated mean at each level of the group
+library(effects)
+plot(allEffects(mlr1))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
