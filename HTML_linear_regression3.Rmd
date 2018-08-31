@@ -1,0 +1,178 @@
+---
+title: "Atrium University ML Tools"
+subtitle: "Introduction to Linear Regression: Try It In R!"
+
+output: 
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+---
+
+```{r, echo=FALSE}
+htmltools::img(src = knitr::image_uri('Atrium_White_Vertical.png'), 
+               alt = 'logo', 
+               style = 'position:absolute; top:10px; left:2px; padding:2px;height:100px;')
+htmltools::img(src = knitr::image_uri('Atrium_FullColor_Vertical.png'), 
+               alt = 'logo', 
+               style = 'position:absolute; top:10px; right:2px; padding:2px;height:100px;')
+               
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(lubridate)
+library(DT)
+library(plotly)
+library(ggpubr);library(pander)
+```
+# Trying it in R:
+
+Now that we know some of the common problems that can be solved using linear regerssion tools, we can try implmenting it! Nearly every statistical software package available can do linear regression. We will outline how it can be done using R. *For directions on how to install and use R, see the "Using R" tutorial on the Wookie*. 
+
+This document contains R-code and output associated with the modeling process. If you have questions about how the models are built or how code works, email paul@atrium.ai. 
+
+Consider the following scenario. You are trying to determine whether or not having a garage impacts the sales price of a home. You collect data on home sales in your city (which, in this case, happens to be Grand Junction, Colorado). Then, you plan to analyze it in R via the following steps:
+
+```{r tryit1, echo = TRUE}
+#reads in the data from a .csv file (generally easiest way to get into R)
+mcdat.full <- read.csv('mcdat.csv',header = TRUE)
+mcdat.full$Garage <- ifelse(mcdat.full$Garage.sqft %in% c('y','Y'),1,0)
+mcdat <- mcdat.full[1:145,]
+mcdat.predict <- mcdat.full[146:163,]
+dim(mcdat) #tells us we have 163 observations on 38 variables
+```
+
+Let's take a look at the data: 
+
+```{r tryit2, echo = TRUE}
+datatable(mcdat[,-c(6,11,12)], options = list(pageLength = 5, scrollX = 75)) #returns the first 10 rows of data
+
+```
+
+Every dataset contains variables that are not necessarily good predictors. In this case, we filter out all the variables that are included in the dataset but are not necessary for analysis. (Note: This can sometimes be hard to figure out. Talk to your domain experts (i.e. customers) when determining which variables are unrelated to the process (i.e. comment-variables, fields that shouldn't be used, etc.))
+
+We can also treat sales date in a more intuitive way using a package called lubridate (Grolemund and Wickham, 2011). In our model, we're just going to use Month as a predictor instead of the entire date for each house sale. R is full of packages that make doing regression easier. 
+
+```{r variable2}
+#some variables don't make sense to use as predictors, they're just added information we don't need
+mcdat_r <- mcdat[,c('Date','ACRES','Total_HeatedSqFtV','Min_EFFECTIVEYEARBUILT','BEDROOM',"Full.Bath",'Garage','Price')]
+
+library(lubridate) #allows you to better formulate dates 
+mcdat_r$Month <- month(mdy(mcdat_r$Date)) #this gives us just the sales month
+```
+
+
+##Simple Linear Regression
+We are now ready to try fitting a model. Let's start with a simple linear regression that looks at whether or not the presence of a garage has an effect on house price. 
+
+```{r linmod3, fig.align = 'center'}
+#linear model (simple linear regression)
+slr1 <- lm(Price ~ Garage, data = mcdat_r)
+pander(summary(slr1))
+```
+
+Based on the results above, we can see that the a house with a garage is estimated by the model to sell for $83,498 more than a house that does not have a garage, on average. The p-value associated with the Garage variable is very small, indicating strong statistical evidence that there is indeed a true difference in sales price between houses that have a garage and houses that do not.  
+
+
+##Assessing Diagnostics
+
+It's always a good idea to make sure that the models we use satisfy the assumptions of a linear regression model. Those assumptions are: 
+
++ The data are **independent**. 
++ The residuals from the model have **constant variance**.
++ The residuals from the model are **normally distributed**. 
++ The relationship between the predictors and the response is reasonably **linear**.
++ There are no outliers or points that exhibit large influence on the model estimates. 
+
+Thankfully, we can assess these assumptions with a few lines of code and a keen eye. The four plots you can use are: 
+
++ **Residuals vs. Fitted Plot**: We want this plot to show constant spread (i.e. it should NOT be wider at one end and narrower at the other) and to be reasonably flat. 
++ **Normal Q-Q**: We want the points on this to fall along the Y=X line. If the shape of the points is curved or looks like an S, it may indicate a problem. 
++ **Scale Location**: If the assumption of linearity is satisfied, we should not see a pattern in this plot. It is very similar to the Residuals vs. Fitted Plot. 
++ **Cook's Distance Plot**: This shows points that might be outliers or potential influential points. Influential points are bad because they may influence the estimates from our statistical model. In R, potential problem points are usually labeled with their observation index (although common sense is useful when diagnosing which points are outliers). 
+
+Here's the diagnostic plots that go with our simple linear regression model: 
+
+```{r, asdiag, echo = TRUE, fig.align = 'center'}
+#assess diagnostics
+par(mfrow = c(2,2))
+plot(slr1, pch = 20)
+```
+
+Based on the plots above, there might be an issue with non-constant variance. The Residuals vs. Fitted Plot indicates wide variability for observations with 'large' fitted values and much narrower variability for observations with 'small' fitted values. The QQ plot is not quite linear either, so it might be time to start thinking about tweaking our model by either transforming it or considering more variables. 
+
+
+
+##Multiple Regression: Models with more than 1 variable
+
+Maybe you decide that the presence/absence of a garage isn't enough information to accurately predict a home's sales price. You want to fit a model that contains more than just a single variable.  That moves us into the world of multiple linear regression. Here, we can examine many predictor variables at a time. The way you implement MLR in R is the same as you would in a single variable regression, but you can use the + sign to add variables to the model formula. 
+
+
+```{r mlr4, fig.align = 'center'}
+#multilple linear regression
+mlr1 <- lm(Price ~ ACRES + Total_HeatedSqFtV + BEDROOM + 
+             Full.Bath + Garage + Month, data = mcdat_r[,-1])
+
+```
+
+Remember, it's always a good idea to check diagnostics! These are the same as in the linear model case. Thankfully, these look pretty good! The QQ-plot is nearly perfectly linear and the Residuals vs. Fitted plot shows even spread for all fitted values. This model appears to be pretty reasonable. 
+
+```{r}
+#diagnostics
+par(mfrow = c(2,2))
+plot(mlr1, pch = 20)
+```
+
+##Model Interpretation:
+Now that you have a reasonably good model, it's time to use it! Here's the results from the model. Which effects are 'statistically significant?'
+
+```{r}
+#model summary
+pander(summary(mlr1))
+```
+
+If you said "darn-near everything", you're on the right track. To determine which features are 'statistically significant' (meaning that we have strong evidence that they play an important role in affecting sales price), look at the P-value (denoted Pr(>t)). Variables that have p-values less than 0.05 are usually considered 'significant'. 
+
+Let's interpret a few of these variables: 
+
++ Quantitative Predictor - **Acres**: For an additional ACRE of land, the model estimates a true mean increase in the sales price of a home of $204,065, holding the values of the other variables in the model constant. 
+
++ Categorical Predictor - **Garage**: After accounting for the other variables in the model, the estimated price of a house with a garage is $30,957 higher than for a house without a garage. (Note that when including other information, we don't estimate as large a price difference due to garages as in the SLR model.)
+
+The metrics at the bottom of the summary table tell us our R-squared value, which can be thought of as the proportion of variation in sales price explained by the predictors in the model. Roughly, we are explaining 75% of the variation in house prices with our model. 
+
+
+##Visulizing Models
+
+One nice tool for visualizing estimated coefficients can be found in the Effects package in R (Fox, 2009). These show the estimated effect of each predictor on the response variable, and they can be very handy for explaining a model's results to a client/customer. They are also handy for us in interpreting which how each predictor affects the response. 
+
+Here's an example: 
+
+```{r effectsplot, fig.align = 'center', fig.width = 10}
+#visualize the model: Effects Plots plot the estimated mean at each level of the group
+library(effects)
+plot(allEffects(mlr1))
+```
+
+##Making Predictions
+
+Finally, we've fit a model, checked diagnostics, and interpreted some of the most salient results. Now we are ready to make some predictions! 
+
+We have a set of new homes for which we want to make predictions about house price. You can explore it here: 
+
+```{r}
+datatable(mcdat.predict[,-c(6,11,12)], options = list(pageLength = 5, scrollX = 75))
+```
+
+Let's try using the predict function, which takes our regression model and a new dataset ('newx') and easily generates predicted prices. Here's our prediction dataset. 
+
+```{r}
+predictions <- predict(mlr1, newx = mcdat.predict)
+length(predictions)
+
+#plot(mcdat.predict$Total_HeatedSqFtV, predictions)
+```
+
+
+

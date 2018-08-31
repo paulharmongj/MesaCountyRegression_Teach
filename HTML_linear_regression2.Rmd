@@ -1,0 +1,114 @@
+---
+title: "Atrium University ML Tools"
+subtitle: "Common Problems in Linear Regression"
+
+output: 
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+---
+
+```{r, echo=FALSE}
+htmltools::img(src = knitr::image_uri('Atrium_White_Vertical.png'), 
+               alt = 'logo', 
+               style = 'position:absolute; top:10px; left:2px; padding:2px;height:100px;')
+htmltools::img(src = knitr::image_uri('Atrium_FullColor_Vertical.png'), 
+               alt = 'logo', 
+               style = 'position:absolute; top:10px; right:2px; padding:2px;height:100px;')
+               
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(lubridate)
+library(DT)
+library(plotly)
+library(ggpubr);library(pander)
+```
+
+# Model Selection
+One common question associated with any regression problem is to decide which variables should be used. In general, it is a good idea to collect as much data as possible, but if the variables that you collect are not good predictors of the outcome you are trying to explain or predict, they should not be included in the model. 
+
+**Why would I remove information from a model?** A good question, indeed. There are several reasons that you might want to consider removing a variable from a model. 
+
+**Multicollinearity**: If two variables are highly related to each other, the model cannot identify the effect of either variable very well. Consider the following example: If we are interested in estimating the average test score for a group of students (of all ages), we might have both their age and their school grade as predictors. However, it is likely that (with a few possible exceptions), most of the students in the same age are in the same grade (i.e. most 7 year-olds are second-graders). Including both variables means we can't really separate out whether an effect on the test score is due to age or additional years of school. 
+
+*Special note: Einstein Discovery implements a tool called Lasso regression that deals with this problem automatically.*
+
+```{r, echo = FALSE, fig.align = 'center', fig.cap = "Here's an example of why it woudl be a bad idea to include Grade and Age in a model. They include almost the exact same information, so we can't differentiate between the two variables. Scroll over a point for more details."}
+library(ggplot2);library(tibble)
+age <- sample(6:12,100, replace = TRUE)
+grade <- age -5 + ifelse(abs(rnorm(100,0,1))>2,1,0)
+df <- tibble(age, grade)
+p <- ggplot(df, aes(age, grade)) + theme_bw() + geom_point(size = 3, color = "dodgerblue3") + 
+  xlab("Age of Student") + ylab("Grade of Student") + ggtitle("Age vs. Grade") 
+ggplotly(p)
+
+```
+
+
+
+**Bad variables**: In general, adding variables to a model will improve predictive performance. However, if the added variable is unrelated to the response of interest, or only a little bit, it may not be worth adding it in. **Key idea: SIMPLE MODELS ARE GENERALLY PREFERABLE TO COMPLICATED ONES**. 
+
+Often, bad variables can be identified by fitting models with different variables included and comparing Akaike's An Information Criterion (AIC) values. Smaller AIC values mean that the model is a better fit to the data - if adding a variable to a model raises its AIC value, it is probably not a good idea to include it. 
+
+*Other tools for automated model selection exist. Stepwise model selection, including Forward and Backward Selection, add or subtract variables and choose the model with the minimum AIC value.  Lasso Regression imposes a "regularization" penalty that shrinks the coefficients for all the variables in the model, setting the smallest ones to 0.*
+
+
+
+
+
+## Inference
+
+A key goal of linear regression to describe the dynamics of a process. At Atrium, a process is usually related to customer purchasing behavior, sales outcomes, or other business-related processes, but we can more generally think of these as systems with many inputs and a single output of interest. Generally, our customers want to know more about the role each input variable plays on the process. 
+
+A customer might want to know about how the price of a product they sell impacts the quantity of their sales ("How much did our sales volume drop after we raised the price?") . Multiple Regression (i.e. linear regression with more than 1 variable) allows for us to estimate the effect of price, controlling for the effect of other variables in the model! Similarly, a customer might implement a new business practice designed to shorten sales engagements and encourage opportunities to close more quickly. We could collect data and use linear regression to assess the efficacy of such an action. 
+
+**Here's an example**: Say you have been contracted by Mazda to figure out which factors are associated with determining miles per gallon (MPG). You fit a model to some publicly available data (the MTcars dataset in R). Here's the data:
+
+\
+```{r, echo = FALSE}
+datatable(mtcars, options = list(pageLength = 5, scrollX = 75))
+
+```
+\
+
+
+You fit a model using Cylinders (cyl), Horsepower (hp), Weight (wt), and the time it takes the car to drive a quarter mile (qsec) and obtain the following results in the table. What we're interested in are the p-values and the point estimates. A "statistically significant" predictor is generally considered to be one that has a p-value smaller than 0.05 (although in some applications this threshold can change). 
+
+Given our results, it looks like the only 'statistically significant' predictor is car weight, which makes sense. The point estimate for car weight is -3.479, meaning that the model estimates the true effect of an additional 1000 pounds of weight to be associated with a drop in fuel efficiency of 3.479 miles per gallon, holding the other variables in the model constant. 
+
+```{r, echo = FALSE}
+newMazda <- data.frame(t(c(0, 6, 180, 150, 3,2.4, 12, 0, 1, 4, 4))); names(newMazda) = names(mtcars)
+m1 <- lm(mpg ~ cyl + hp + wt + qsec, data = mtcars)
+pander(summary(m1))
+```
+
+You might have noticed some other values in the bottom of the table, including $R^2$ and Adjusted $R^2$. These are measures of overall model fit and roughly, they tell us that the variables included in the model describe roughly 80 percent of the variation in MPG. That's pretty good! 
+
+```{r pressure, echo=FALSE, out.width = '50%', fig.align = 'center', fig.cap = "Even Sarcastibot agrees that inference is a useful statistical tool!"}
+knitr::include_graphics("sarcastibotcar.png")
+```
+
+
+
+
+## Prediction
+
+The other primary use case for linear regression is for prediction or forecasting. A good model should be able to produce a reasonable prediction output for a new input of data. 
+
+Let's return to the example with the cars. Let's say Mazda has developed a new car with 6 cylinders, 150 horsepower, weighing 2.4 thousand pounds, with a qsec time of 12 seconds. The linear regression model we fit allows you to predict the mpg for this car using the "predict" function in R. (Under the hood, all it's doing is taking the new car's data values and inputting them into the model!) 
+
+```{r}
+predict(m1, newMazda)
+```
+
+The model predicts that the new Mazda will get 21.72 miles per gallon. We can take a look at a plot of
+the data with our new predicted observation: 
+
+```{r, echo = FALSE}
+mtcars[33,] <- newMazda; mtcars[33,1] <- 21.72
+p <- ggplot(mtcars, aes(cyl,mpg)) + geom_point(color = c(rep(1,32),3), size = c(rep(2,32),3)) + theme_classic() + ggtitle("Car Cylinders vs Car MPG") + annotate('text',6.4,23,label = 'New Mazda (Prediction)', color = 3, size = 5)
+ggplotly(p)
+```
