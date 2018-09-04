@@ -25,12 +25,13 @@ library(lubridate)
 library(DT)
 library(plotly)
 library(ggpubr);library(pander)
+library(plotly);library(viridis)
 ```
 # Trying it in R:
 
-Now that we know some of the common problems that can be solved using linear regerssion tools, we can try implmenting it! Nearly every statistical software package available can do linear regression. We will outline how it can be done using R. *For directions on how to install and use R, see the "Using R" tutorial on the Wookie*. 
+Now that we know some of the common problems that can be solved using linear regression tools, we can try implementing it! Nearly every statistical software package available can do linear regression. We will outline how it can be done using R. *For directions on how to install and use R, see the "Using R" tutorial on the Wookie*. 
 
-This document contains R-code and output associated with the modeling process. If you have questions about how the models are built or how code works, email paul@atrium.ai. 
+This document contains R-code and output associated with the modeling process. If you have questions about how the models are built or how the R-code works, email paul@atrium.ai. 
 
 Consider the following scenario. You are trying to determine whether or not having a garage impacts the sales price of a home. You collect data on home sales in your city (which, in this case, happens to be Grand Junction, Colorado). Then, you plan to analyze it in R via the following steps:
 
@@ -50,7 +51,7 @@ datatable(mcdat[,-c(6,11,12)], options = list(pageLength = 5, scrollX = 75)) #re
 
 ```
 
-Every dataset contains variables that are not necessarily good predictors. In this case, we filter out all the variables that are included in the dataset but are not necessary for analysis. (Note: This can sometimes be hard to figure out. Talk to your domain experts (i.e. customers) when determining which variables are unrelated to the process (i.e. comment-variables, fields that shouldn't be used, etc.))
+Every dataset contains variables that are not necessarily good predictors. In this case, we filter out all the variables that are included in the dataset but are not necessary for analysis. Identifying these variables can sometimes be hard to figure out. Talk to your domain experts (i.e. customers) when determining which variables are unrelated to the process, such as comment-fields, fields that don't make sense in a model, etc.
 
 We can also treat sales date in a more intuitive way using a package called lubridate (Grolemund and Wickham, 2011). In our model, we're just going to use Month as a predictor instead of the entire date for each house sale. R is full of packages that make doing regression easier. 
 
@@ -62,9 +63,17 @@ library(lubridate) #allows you to better formulate dates
 mcdat_r$Month <- month(mdy(mcdat_r$Date)) #this gives us just the sales month
 ```
 
+```{r hidden, echo = FALSE}
+mcdat.predict$Month <- month(mdy(mcdat.predict$Date))
+```
+
 
 ##Simple Linear Regression
-We are now ready to try fitting a model. Let's start with a simple linear regression that looks at whether or not the presence of a garage has an effect on house price. 
+We are now ready to try fitting a model. Let's start with a simple linear regression that looks at whether or not the presence of a garage has an effect on house price. Here's the model:
+
+$$Price_i = \beta_0 + \beta_1*Garage_i + \epsilon_i $$ 
+
+Here's how we generate the code we need to run the model in R. Thankfully, linear regression is easy in R, so it requires only one little bit of code: 
 
 ```{r linmod3, fig.align = 'center'}
 #linear model (simple linear regression)
@@ -103,10 +112,14 @@ plot(slr1, pch = 20)
 Based on the plots above, there might be an issue with non-constant variance. The Residuals vs. Fitted Plot indicates wide variability for observations with 'large' fitted values and much narrower variability for observations with 'small' fitted values. The QQ plot is not quite linear either, so it might be time to start thinking about tweaking our model by either transforming it or considering more variables. 
 
 
-
 ##Multiple Regression: Models with more than 1 variable
 
-Maybe you decide that the presence/absence of a garage isn't enough information to accurately predict a home's sales price. You want to fit a model that contains more than just a single variable.  That moves us into the world of multiple linear regression. Here, we can examine many predictor variables at a time. The way you implement MLR in R is the same as you would in a single variable regression, but you can use the + sign to add variables to the model formula. 
+Maybe you decide that the presence/absence of a garage isn't enough information to accurately predict a home's sales price. You want to fit a model that contains more than just a single variable.  That moves us into the world of multiple linear regression. Here, we can examine many predictor variables at a time. Here's our new model with six predictor variables: 
+
+$$ Price_i = \beta_0 + \beta_1*Acres_i + \beta_2*Sqft_i + \beta_3*Bed_i + \beta_4*Bath_i + $$ 
+$$ \beta_5*Garage_i + \beta_6*Month_i + \epsilon_i $$ 
+
+The way you implement MLR in R is the same as you would in a single variable regression, but you can use the + sign to add variables to the model formula. 
 
 
 ```{r mlr4, fig.align = 'center'}
@@ -118,7 +131,7 @@ mlr1 <- lm(Price ~ ACRES + Total_HeatedSqFtV + BEDROOM +
 
 Remember, it's always a good idea to check diagnostics! These are the same as in the linear model case. Thankfully, these look pretty good! The QQ-plot is nearly perfectly linear and the Residuals vs. Fitted plot shows even spread for all fitted values. This model appears to be pretty reasonable. 
 
-```{r}
+```{r, fig.align = 'center'}
 #diagnostics
 par(mfrow = c(2,2))
 plot(mlr1, pch = 20)
@@ -165,13 +178,23 @@ We have a set of new homes for which we want to make predictions about house pri
 datatable(mcdat.predict[,-c(6,11,12)], options = list(pageLength = 5, scrollX = 75))
 ```
 
-Let's try using the predict function, which takes our regression model and a new dataset ('newx') and easily generates predicted prices. Here's our prediction dataset. 
+Let's try using the predict function, which takes our regression model and a new dataset ('newdata') and easily generates predicted prices. We can then examine a plot of predicted sales over time and compare them to the data that we used to fit the model.
 
-```{r}
-predictions <- predict(mlr1, newx = mcdat.predict)
-length(predictions)
+```{r, fig.align = 'center'}
+mcdat.predict$predictions <- predict(mlr1, newdata = mcdat.predict)
+mcdat$predictions <- mcdat$Price
+mcnew <- data.frame(bind_rows(mcdat.predict, mcdat))
+mcnew$Datenew <- mdy(mcnew$Date)
+mcnew$Pred <- c(rep("Prediction",18),rep("Training Data",145))
 
-#plot(mcdat.predict$Total_HeatedSqFtV, predictions)
+
+#builds a plot in ggplot (prettier than base graphics)
+#dplyr::filter(mcnew,!predictions ==0)
+
+plot1 <- ggplot(mcnew) + geom_point(aes(Datenew,predictions, color = factor(Pred))) + theme_bw() + scale_color_viridis(discrete = TRUE, "Type",labels = c("Prediction","Training Data"),option = "plasma")  + ggtitle("Predictions of House Prices by Month") + ylab("Predicted Price") + xlab("Sales Date")
+
+ggplotly(plot1)
+
 ```
 
 
