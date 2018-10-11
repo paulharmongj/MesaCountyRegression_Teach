@@ -1,0 +1,124 @@
+---
+title: "Atrium University ML Tools"
+subtitle: "Logistic Regression: Introduction"
+
+output: 
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+---
+
+```{r, echo=FALSE}
+htmltools::img(src = knitr::image_uri('Atrium_White_Vertical.png'), 
+               alt = 'logo', 
+               style = 'position:absolute; top:10px; left:2px; padding:2px;height:100px;')
+htmltools::img(src = knitr::image_uri('Atrium_FullColor_Vertical.png'), 
+               alt = 'logo', 
+               style = 'position:absolute; top:10px; right:2px; padding:2px;height:100px;')
+               
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(lubridate)
+library(DT)
+library(plotly)
+library
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## The Setting:
+
+In this exploration of logistic regression, we have survey data obtained from FiveThirtyEight's github page. The survey asks respondents about whether they have seen any of the six Star Wars films, and then asks them to rate each film. You can access it at this link: [link](https://github.com/fivethirtyeight/data/blob/master/star-wars-survey/StarWars.csv). 
+
+The survey contains a lot of information about respondents as well, and not every person who was asked about the films had actually seen them. That's the question that we're going to try to analyze: What factors are associated with whether or not a survey respondent has actually seen a "Star Wars" film? 
+
+Our response variable: 
+
++ **1**: A respondent HAS seen at least one Star Wars film
++ **0**: A responsdent HAS NOT seen any Star Wars film
+
+Let's load in the data directly from the web: 
+```{r, include = TRUE}
+library(readr);library(tibble)
+sw <- read.csv("https://raw.githubusercontent.com/fivethirtyeight/data/master/star-wars-survey/StarWars.csv", sep = ",")
+
+```
+
+
+Because this data is coming directly from a survey, there are a lot of columns that refer to survey questions. For this analysis, we're mostly only interested in our response variable and some demographic predictors at the end. Let's go ahead and use the 'dplyr' package in R to **select** just the variables we want. Be warned, some of the variable names in this data set are pretty crazy! 
+
+```{r}
+library(dplyr)
+#let's get a vector of variable names that we want
+var.names <- c("Have.you.seen.any.of.the.6.films.in.the.Star.Wars.franchise.",
+               "Do.you.consider.yourself.to.be.a.fan.of.the.Star.Trek.franchise.",
+               "Gender","Age","Household.Income",
+               "Education", "Location..Census.Region.")
+#told ya the variable names were crazy! 
+#let's go ahead and create a new dataset
+
+sw.new <- select(sw, one_of(var.names))
+
+```
+
+Ok, so we have a dataset. Before we analyze anything, let's do a little bit of "data wrangling" to make things easier. 
+
++ First, let's change the variable names to something manageable. 
++ Second, let's recode the levels of each variable and treat them as a factor. 
+
+```{r}
+#rename the columns
+names(sw.new) <- c("Y","Trekkie","Gender","Age","Income","Education","Location")
+
+#recode the columns as factors:
+sw.new.f <- lapply(sw.new, as.factor) #codes all the predictors as factors
+sw.new.f$Ynew <- ifelse(sw.new.f$Y == "No",0,1) #need numeric, binary response
+
+#It's OK to have the X variables (explanatory variables) coded as factors
+#However, the response variable Y needs to be coded as a 0,1 binary vector of numbers
+
+glm(Ynew ~ Trekkie + Gender + Age + Income + Education + Location, data = sw.new.f)
+```
+
+Great, now we have a dataset that we can analyze! A little bit of exploratory analysis is in order first. One way to analyze binary response data, especially if we only have a few predictors, is to look at mosaic plots. These are just visual representations of contingency tables that show the proportion of Yes/No responses by each level of a predictor. Let's take a look at some for this dataset: 
+
+```{r}
+mosaicplot(table(sw.new.f$Gender,sw.new.f$Ynew), col = c("red","yellow3"))
+mosaicplot(table(sw.new.f$Age,sw.new.f$Ynew), col = c("blue3",'orange2'))
+mosaicplot(table(sw.new.f$Income,sw.new.f$Ynew), col = c("dodgerblue2",'gold3'))
+mosaicplot(table(sw.new.f$Education,sw.new.f$Ynew), col = c("blue3",'orange2'))
+mosaicplot(table(sw.new.f$Location,sw.new.f$Ynew), col = c("blue3",'orange2'))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
