@@ -20,20 +20,15 @@ htmltools::img(src = knitr::image_uri('Atrium_FullColor_Vertical.png'),
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(dplyr)
+library(dplyr); library(magrittr)
 library(lubridate)
 library(DT)
 library(plotly)
-library
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
 ```
+
+# Try Logistic Regression in R! 
+Now that you know some of the technical details, let's look at how this can be implemented in R. You can follow along with the code below or use this code as a reference when fitting your own models. 
 
 ## The Setting:
 
@@ -67,6 +62,25 @@ var.names <- c("Have.you.seen.any.of.the.6.films.in.the.Star.Wars.franchise.",
 #let's go ahead and create a new dataset
 
 sw.new <- select(sw, one_of(var.names))
+sw.new <- sw.new[-c(1),]
+```
+
+```{r, include = TRUE, echo = FALSE}
+
+##assesses and re-codes factor levels
+sw.new %>% select_if(is.factor) %>% lapply(levels)
+levels(sw.new$Do.you.consider.yourself.to.be.a.fan.of.the.Star.Trek.franchise.)[1] <- "NA" 
+levels(sw.new$Gender)[1]  <- "NA"
+levels(sw.new$Age)[1] <- "NA"
+levels(sw.new$Household.Income)[1] <- "NA"
+levels(sw.new$Education)[1] <- "NA"
+levels(sw.new$Location..Census.Region.)[1] <- "NA"
+
+#drop this random factor level
+
+sw.new <- data.frame(lapply(sw.new, droplevels))
+dim(sw.new)
+
 
 ```
 
@@ -89,12 +103,17 @@ sw.new.f$Ynew <- ifelse(sw.new.f$Y == "No",0,1) #need numeric, binary response
 glm(Ynew ~ Trekkie + Gender + Age + Income + Education + Location, data = sw.new.f)
 ```
 
-Great, now we have a dataset that we can analyze! A little bit of exploratory analysis is in order first. One way to analyze binary response data, especially if we only have a few predictors, is to look at mosaic plots. These are just visual representations of contingency tables that show the proportion of Yes/No responses by each level of a predictor. Let's take a look at some for this dataset: 
+Great, now we have a dataset that we can analyze! A little bit of exploratory analysis is in order first. One way to analyze binary response data, especially if we only have a few predictors, is to look at mosaic plots. These are just visual representations of contingency tables that show the proportion of Yes/No responses by each level of a predictor. Let's take a look at some for this dataset. 
+
+First, because many of our categories are ordinal, we want to make sure that their order is correct. We don't need to worry about Gender, Location, or whether or not the respondent likes Star Trek. Those categories do not have implicit ordering. However, the order of age, income, and education do matter, so we want that to be reflected in the plots. We can order the levels of the factor using the relevel function in R.  
 
 ```{r}
+
+#create a mosaicplot
+mosaicplot(table(sw.new.f$Trekkie, sw.new.f$Ynew), col = c("gold","purple"))
 mosaicplot(table(sw.new.f$Gender,sw.new.f$Ynew), col = c("red","yellow3"))
-mosaicplot(table(sw.new.f$Age,sw.new.f$Ynew), col = c("blue3",'orange2'))
-mosaicplot(table(sw.new.f$Income,sw.new.f$Ynew), col = c("dodgerblue2",'gold3'))
+mosaicplot(table(sw.new.f$Age,sw.new.f$Ynew), col = c("blue3",'orange2'), las = 2)
+mosaicplot(table(sw.new.f$Income,sw.new.f$Ynew), col = c("dodgerblue2",'gold3'), las = 2)
 mosaicplot(table(sw.new.f$Education,sw.new.f$Ynew), col = c("blue3",'orange2'))
 mosaicplot(table(sw.new.f$Location,sw.new.f$Ynew), col = c("blue3",'orange2'))
 
