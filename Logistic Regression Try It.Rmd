@@ -97,6 +97,7 @@ mosaicplot(table(sw.new.f$Age,sw.new.f$Ynew), col = c("blue3",'orange2'))
 mosaicplot(table(sw.new.f$Income,sw.new.f$Ynew), col = c("dodgerblue2",'gold3'))
 mosaicplot(table(sw.new.f$Education,sw.new.f$Ynew), col = c("blue3",'orange2'))
 mosaicplot(table(sw.new.f$Location,sw.new.f$Ynew), col = c("blue3",'orange2'))
+check.here <- TRUE
 
 ```
 
