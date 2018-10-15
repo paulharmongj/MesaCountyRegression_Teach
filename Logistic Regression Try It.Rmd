@@ -25,7 +25,7 @@ library(lubridate)
 library(DT)
 library(plotly)
 library(readr);library(tibble)
-library(pROC)
+library(pROC);library(pander)
 
 ```
 
@@ -50,6 +50,11 @@ Our response variable:
 + **1**: A respondent HAS seen at least one Star Wars film
 + **0**: A respondent HAS NOT seen any Star Wars film
 
+```{r runlukerun, echo=FALSE, fig.cap="**You might be surpised, but there are more people than you'd think who have never seen a Star Wars film.**", out.width = '70%', fig.align = 'center'}
+knitr::include_graphics("Figures/starwars.jpg")
+```
+
+
 Let's load in the data directly from the web: 
 ```{r, include = TRUE}
 
@@ -58,7 +63,7 @@ sw <- read.csv("https://raw.githubusercontent.com/fivethirtyeight/data/master/st
 ```
 
 
-Because this data is coming directly from a survey, there are a lot of columns that refer to survey questions. For this analysis, we're mostly only interested in our response variable and some demographic predictors at the end. Let's go ahead and use the 'dplyr' package in R to **select** just the variables we want. Be warned, some of the variable names in this data set are pretty crazy! 
+Because these data are coming directly from a survey, there are a lot of columns that refer to survey questions. For this analysis, we're mostly only interested in our response variable and some demographic predictors at the end. Let's go ahead and use the 'dplyr' package in R to **select** just the variables we want. Be warned, some of the variable names in this data set are pretty crazy! 
 
 ```{r}
 
@@ -124,7 +129,6 @@ sw.new.f$Ynew <- ifelse(sw.new.f$Y == "No",0,1) #need numeric, binary response
 #It's OK to have the X variables (explanatory variables) coded as factors
 #However, the response variable Y needs to be coded as a 0,1 binary vector of numbers
 
-glm(Ynew ~ Trekkie + Gender + Age + Income + Education + Location, data = sw.new.f)
 ```
 
 Great, now we have a dataset that we can analyze! A little bit of exploratory analysis is in order first. One way to analyze binary response data, especially if we only have a few predictors, is to look at mosaic plots. These are just visual representations of contingency tables that show the proportion of Yes/No responses by each level of a predictor. Let's take a look at some for this dataset. 
@@ -134,19 +138,21 @@ First, because many of our categories are ordinal, we want to make sure that the
 ```{r, fig.align = 'center'}
 par(mar = c(2,1,3,1))
 #create a mosaicplot
-mosaicplot(table(sw.new.f$Trekkie, sw.new.f$Ynew), col = c("blue3",'orange2'), main = "Trek Fan Status vs. Whether Respondent Has Seen Star Wars")
-mosaicplot(table(sw.new.f$Gender,sw.new.f$Ynew), col = c("blue3",'orange2'), main = "Gender vs. Whether Respondent Has Seen Star Wars")
-mosaicplot(table(sw.new.f$Age,sw.new.f$Ynew), col = c("blue3",'orange2'), las = 2, main = "Age vs. Whether Respondent Has Seen Star Wars")
-mosaicplot(table(sw.new.f$Income,sw.new.f$Ynew), col = c("blue3",'orange2'), las = 2, main = "Income vs. Whether Respondent Has Seen Star Wars")
-mosaicplot(table(sw.new.f$Education,sw.new.f$Ynew), col = c("blue3",'orange2'), las = 1, main = "Education Level vs. Whether Respondent Has Seen Star Wars")
-mosaicplot(table(sw.new.f$Location,sw.new.f$Ynew), col = c("blue3",'orange2'), las = 2, cex = .6, main = "Location vs. Whether Respondent Has Seen Star Wars")
+mosaicplot(table(sw.new.f$Trekkie, sw.new.f$Ynew), col = c('steelblue4','seagreen1'), main = "Trek Fan Status vs. Whether Respondent Has Seen Star Wars")
+mosaicplot(table(sw.new.f$Gender,sw.new.f$Ynew), col = c('steelblue4','seagreen1'), main = "Gender vs. Whether Respondent Has Seen Star Wars")
+mosaicplot(table(sw.new.f$Age,sw.new.f$Ynew), col = c('steelblue4','seagreen1'), las = 2, main = "Age vs. Whether Respondent Has Seen Star Wars")
+mosaicplot(table(sw.new.f$Income,sw.new.f$Ynew), col = c('steelblue4','seagreen1'), las = 2, main = "Income vs. Whether Respondent Has Seen Star Wars")
+mosaicplot(table(sw.new.f$Education,sw.new.f$Ynew), col = c('steelblue4','seagreen1'), las = 1, main = "Education Level vs. Whether Respondent Has Seen Star Wars")
+mosaicplot(table(sw.new.f$Location,sw.new.f$Ynew), col = c('steelblue4','seagreen1'), las = 2, cex = .6, main = "Location vs. Whether Respondent Has Seen Star Wars")
 
 
 ```
 
-These plots produce nice visualizations of the proportion of success by each predictor. For instance, we can see that a much higher proportions of respondents who identified as not being fans of Star Trek also had not seen Star Wars. This makes sense; people who are not fans of science fiction probably pay less attention to both Star Trek and Star Wars films/tv shows. The mosaic plots for gender and age show that male respondents are slightly more likely to have seen Star Wars than women and that older respondents (age 60 and older) are slightly less likely to have seen a Star Wars film. Differences in viewership are nearly identical between lower levels of income and education - an interesting and probably related trend that we should be aware of. Finally,there are only slight differences in proportions of respondents that have seen Star Wars by location.  
+These plots produce nice visualizations of the proportion of success by each predictor. For instance, we can see that a much higher proportions of respondents who identified as not being fans of Star Trek also had not seen Star Wars. This makes sense; people who are not fans of science fiction probably pay less attention to both Star Trek and Star Wars films/TV shows. The mosaic plots for gender and age show that male respondents are slightly more likely to have seen Star Wars than women and that older respondents (age 60 and older) are slightly less likely to have seen a Star Wars film. Differences in viewership are nearly identical between lower levels of income and education - an interesting and probably related trend that we should be aware of. Finally,there are only slight differences in proportions of respondents that have seen Star Wars by location.  
 
-Based on these plots, which variables do you think are important? This is a bit of a subjective question, but it certainly appears that **Trek Fan status, Age,** and **Gender** are important whereas Location, Education, and Income might not be quite as important. 
+Based on these plots, which variables do you think are important? This is a bit of a subjective question, but it certainly appears that **Star Trek Fan Status, Age,** and **Gender** exhibit differences in the response. By contrast, the predictors **Location**, **Education**, and **Income** seem to have fairly similar proportions of successes and failures in each level of the predictor. 
+
+**Note**: In some cases, we may have too many variables to easily assess plots of the predictors vs. the binned response. In such cases, it's a good idea to use variable selection processes such as forward-backward AIC selection or Lasso regression to inform model building.  
 
 
 # Simple Logistic Regression:
@@ -164,10 +170,15 @@ sw.new.f$Gender <- relevel(sw.new.f$Gender, ref = "Female")
 
 #runs the logistic regression model
 glm1 <- glm(Y ~ Gender, data = sw.new.f, family = binomial(link = logit))
-summary(glm1)
+pander(summary(glm1))
 ```
 
 Looking at the summary, we can see estimates for an intercept, GENDERNA, and GENDERMALE levels. The GENDERNA refers to respondents who simply did not respond to the question, and GENDERMALE refers to anyone who selected MALE as their gender. 
+
+## Interpreting a Logistic Regression Model
+```{r Solo, echo=FALSE, fig.cap="**Unlike Han Solo, we want to know all about the odds.**", out.width = '70%', fig.align = 'center'}
+knitr::include_graphics("Figures/hansolo.jpg")
+```
 
 Unlike linear regression, we cannot directly interpret the coefficients because logistic regression provides estimates on a logit scale. Thankfully, we can get compare the odds of a male respondent having seen Star Wars vs. the odds of a female respondent using the exponential function: 
 
@@ -184,10 +195,6 @@ exp(est[1] + est['GenderMale'])
 ```
 
 What we now know is that the odds that a male respondent has seen Star Wars is 5.7 to 1, whereas for female respondents, that ratio is only 2.61 to 1. The **odds ratio** of males to females is $\frac{5.7}{2.6} = 2.19$, indicating that men are roughly 2.2 times as likely to have seen at least one Star Wars film. 
-
-```{r Solo, echo=FALSE, fig.cap="**Unlike Han Solo, we want to know all about the odds.**", out.width = '70%', fig.align = 'center'}
-knitr::include_graphics("Figures/hansolo.jpg")
-```
 
 Interpreting logistic regression models, especially their coefficients, can be hard. Most problems faced in industry involve prediction rather than interpreting inferential results, so this complexity can be avoided in many settings. However, if you are interested in learning more about interpreting odds ratios and probabilities, check out this link: [UCLA Interpretations](https://stats.idre.ucla.edu/other/mult-pkg/faq/general/faq-how-do-i-interpret-odds-ratios-in-logistic-regression/). 
 
@@ -209,7 +216,7 @@ We can fit the model just as easily as in the single variable case by adding to 
 ```{r}
 #runs the logistic regression model
 glm2 <- glm(Y ~ Gender + Age + Location + Trekkie + Education + Income, data = sw.new.f, family = binomial(link = logit))
-summary(glm2)
+pander(summary(glm2))
 ```
 
 **Take a look at the summary.** Notice anything funny? 
@@ -245,7 +252,7 @@ predict.class <- ifelse(predict.prob > thresh, 1, 0)
 predicted_data <- data.frame(cbind(data.frame(glm2$data), round(predict.prob,2),predict.class))
 names(predicted_data) [c(9,10)] <- c("Propensity Score", "Predicted Class")
 
-datatable(predicted_data, options = list(scrollx = 75, pagelength = 5))
+datatable(predicted_data, options = list(scrollX = 75, pageLength = 5))
 ```
 
 
@@ -261,7 +268,7 @@ Quick AUC Interpretations:
  + **0.7-0.85**: Pretty good model fit. 
  + **> 0.85 **: The model is predicting pretty close to the truth.  
  
-Let's check the AUC of the model and examine a plot.  
+Let's check the AUC of the model and examine a plot. As it turns out, this model does a pretty nice job of predicting whether or not someone has seen a Star Wars film. 
 
 ```{r}
 
@@ -276,7 +283,9 @@ legend('bottomright', legend = paste("AUC is: ",round(auc(roc1),2)))
 ```
 
 
+# Putting It All Together
 
+We've just fit a logistic regresssion model that predicts whether or not someone has seen a Star Wars film based on just a few pieces of information about them. At Atrium, we are often tasked with fitting logistic regression models for lead lead scoring, opportunity scoring, or two-group classification problems. The methods presented in this document can be used for any of those types of models. 
 
 
 

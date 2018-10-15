@@ -1,0 +1,10 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/415842/47ad3df842ab46599e07dde20d9fddd6
+bundleId: https://api.rpubs.com/api/v1/document/415842/47ad3df842ab46599e07dde20d9fddd6
+url: http://rpubs.com/atriuminsights/415842
+when: 1539622819.31449

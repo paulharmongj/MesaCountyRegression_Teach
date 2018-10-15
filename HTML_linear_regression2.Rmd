@@ -18,13 +18,14 @@ htmltools::img(src = knitr::image_uri('Atrium_FullColor_Vertical.png'),
                
 ```
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, echo = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(lubridate)
 library(DT)
 library(plotly)
 library(ggpubr);library(pander)
+library(ggplot2);library(tibble)
 ```
 
 # Model Selection
@@ -36,8 +37,8 @@ One common question associated with any regression problem is to decide which va
 
 *Special note: Einstein Discovery implements a tool called Lasso regression that deals with this problem automatically.*
 
-```{r, echo = FALSE, fig.align = 'center', fig.cap = "Here's an example of why it woudl be a bad idea to include Grade and Age in a model. They include almost the exact same information, so we can't differentiate between the two variables. Scroll over a point for more details."}
-library(ggplot2);library(tibble)
+```{r, echo = FALSE, fig.align = 'center', fig.cap = "**Here's why it would be a bad idea to include Grade and Age in a model. They include almost the exact same information, so we can't differentiate between the two variables.**", message = FALSE}
+
 age <- sample(6:12,100, replace = TRUE)
 grade <- age -5 + ifelse(abs(rnorm(100,0,1))>2,1,0)
 df <- tibble(age, grade)
@@ -87,7 +88,7 @@ pander(summary(m1))
 
 You might have noticed some other values in the bottom of the table, including $R^2$ and Adjusted $R^2$. These are measures of overall model fit and roughly, they tell us that the variables included in the model describe roughly 80 percent of the variation in MPG. That's pretty good! 
 
-```{r pressure, echo=FALSE, out.width = '50%', fig.align = 'center', fig.cap = "Even Sarcastibot agrees that inference is a useful statistical tool!"}
+```{r pressure, echo=FALSE, out.width = '50%', fig.align = 'center', fig.cap = "**Even Sarcastibot agrees that inference is a useful statistical tool!**"}
 knitr::include_graphics("sarcastibotcar.png")
 ```
 
@@ -107,7 +108,7 @@ predict(m1, newMazda)
 The model predicts that the new Mazda will get 21.72 miles per gallon. We can take a look at a plot of
 the data with our new predicted observation: 
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, message = FALSE}
 mtcars[33,] <- newMazda; mtcars[33,1] <- 21.72
 p <- ggplot(mtcars, aes(cyl,mpg)) + geom_point(color = c(rep(1,32),3), size = c(rep(2,32),3)) + theme_classic() + ggtitle("Car Cylinders vs Car MPG") + annotate('text',6.4,23,label = 'New Mazda (Prediction)', color = 3, size = 5)
 ggplotly(p)
